@@ -44,20 +44,20 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: install dependencies
-        run: brew install sdl2 glew
+        run: brew install sdl3 glew
       - name: build yarnspin
         run: |
-          clang -o yarnspin -O2 source/yarnspin.c `sdl2-config --libs --cflags` -lGLEW -framework OpenGL -lpthread -I$(brew --prefix glew)/include
-          clang -o runtime  -O2 -DYARNSPIN_RUNTIME_ONLY source/yarnspin.c `sdl2-config --libs --cflags` -lGLEW -framework OpenGL -lpthread -I$(brew --prefix glew)/include
+          clang -o yarnspin -O2 source/yarnspin.c `sdl3-config --libs --cflags` -lGLEW -framework OpenGL -lpthread -I$(brew --prefix glew)/include
+          clang -o runtime  -O2 -DYARNSPIN_RUNTIME_ONLY source/yarnspin.c `sdl3-config --libs --cflags` -lGLEW -framework OpenGL -lpthread -I$(brew --prefix glew)/include
   build-macos-cpp:
     runs-on: macOS-latest
     steps:
       - uses: actions/checkout@v1
       - name: install dependencies
-        run: brew install sdl2 glew
+        run: brew install sdl3 glew
       - name: build yarnspin
         run: |
-          clang++ source/yarnspin.c `sdl2-config --libs --cflags` -lGLEW -framework OpenGL -lpthread -I$(brew --prefix glew)/include
+          clang++ source/yarnspin.c `sdl3-config --libs --cflags` -lGLEW -framework OpenGL -lpthread -I$(brew --prefix glew)/include
   build-linux-gcc:
     runs-on: ubuntu-latest
     steps:
@@ -65,8 +65,8 @@ jobs:
       - uses: robinraju/release-downloader@v1 
         with: 
           repository: "libsdl-org/SDL" 
-          tag: "release-2.28.1" 
-          fileName: "SDL2-2.28.1.tar.gz" 
+          tag: "release-3.0.0" 
+          fileName: "SDL3-3.0.0.tar.gz" 
       - name: install dependencies
         run: |
           sudo apt-get update 
@@ -75,16 +75,16 @@ jobs:
           sudo apt-get install -qq lld 
           sudo apt-get install -qq binaryen
           sudo apt-get install -qq libxext-dev 
-          tar -xzvf SDL2-2.28.1.tar.gz
+          tar -xzvf SDL3-3.0.0.tar.gz
       - name: build yarnspin
         run: |
-          cd SDL2-2.28.1
-          ./configure --disable-shared --enable-static --prefix=$PWD/sdl2
+          cd SDL3-3.0.0
+          ./configure --disable-shared --enable-static --prefix=$PWD/sdl3
           make
           make install
           cd ..
-          gcc -o yarnspin -O2 source/yarnspin.c /usr/lib/x86_64-linux-gnu/libGLEW.a `$PWD/SDL2-2.28.1/sdl2/bin/sdl2-config --cflags` $PWD/SDL2-2.28.1/sdl2/lib/libSDL2.a -lGL -lm -lpthread 
-          gcc -o runtime -O2 -DYARNSPIN_RUNTIME_ONLY source/yarnspin.c  /usr/lib/x86_64-linux-gnu/libGLEW.a `$PWD/SDL2-2.28.1/sdl2/bin/sdl2-config --cflags` $PWD/SDL2-2.28.1/sdl2/lib/libSDL2.a -lGL -lm -lpthread 
+          gcc -o yarnspin -O2 source/yarnspin.c /usr/lib/x86_64-linux-gnu/libGLEW.a `$PWD/SDL3-3.0.0/sdl3/bin/sdl3-config --cflags` $PWD/SDL3-3.0.0/sdl3/lib/libSDL3.a -lGL -lm -lpthread 
+          gcc -o runtime -O2 -DYARNSPIN_RUNTIME_ONLY source/yarnspin.c  /usr/lib/x86_64-linux-gnu/libGLEW.a `$PWD/SDL3-3.0.0/sdl3/bin/sdl3-config --cflags` $PWD/SDL3-3.0.0/sdl3/lib/libSDL3.a -lGL -lm -lpthread 
   build-wasm:
     runs-on: windows-latest
     steps:

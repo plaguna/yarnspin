@@ -149,7 +149,7 @@ void crtemu_coordinates_window_to_bitmap( crtemu_t* crtemu, int width, int heigh
 
     #ifndef CRTEMU_WEBGL
         #include <GL/glew.h>
-        #include "SDL_opengl.h"
+        #include "SDL3/SDL_opengl.h"
     #else
         #include <wajic_gl.h>
     #endif

@@ -771,7 +771,7 @@ details.
         #include <wajic_coro.h>
     #else
         #include <GL/glew.h>
-        #include "SDL_opengl.h"
+        #include "SDL3/SDL_opengl.h"
     #endif
     #define APP_GLCALLTYPE GLAPIENTRY
     typedef GLuint APP_GLuint;
@@ -3333,7 +3333,7 @@ void app_coordinates_bitmap_to_window( app_t* app, int width, int height, int* x
 #include <string.h>
 #include <stdio.h>
 
-#include "SDL.h"
+#include "SDL3/SDL.h"
 
 #ifndef APP_FATAL_ERROR
     #define APP_FATAL_ERROR( ctx, message ) { \
@@ -3355,7 +3355,7 @@ struct app_t
     SDL_Window* window;
     SDL_Cursor* cursor;
 
-    SDL_AudioDeviceID sound_device;
+    SDL_AudioStream* sound_device;
     void (*sound_callback)( APP_S16* sample_pairs, int sample_pairs_count, void* user_data );
     void* sound_user_data;
     int volume;
@@ -3383,7 +3383,7 @@ int app_run( int (*app_proc)( app_t*, void* ), void* user_data, void* memctx, vo
     int display_count;
     int glres;
 
-    if( SDL_Init( SDL_INIT_EVERYTHING ) < 0 )
+    if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS ) < 0 )
         {
 //        printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
         goto init_failed;
@@ -3393,7 +3393,8 @@ int app_run( int (*app_proc)( app_t*, void* ), void* user_data, void* memctx, vo
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
-    app->window = SDL_CreateWindow( "", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 400, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
+    app->window = SDL_CreateWindow( "", 640, 400, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN );
+    if( app->window ) SDL_SetWindowPosition( app->window, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED );
     if( !app->window )
     {
 //        printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
@@ -3403,11 +3404,11 @@ int app_run( int (*app_proc)( app_t*, void* ), void* user_data, void* memctx, vo
     app->has_focus = 1;
     app->volume = 256;
 
-    display_count = SDL_GetNumVideoDisplays();
+    SDL_DisplayID* displays = SDL_GetDisplays( &display_count );
     for( int i = 0; i < display_count; ++i )
         {
         SDL_Rect r;
-        SDL_GetDisplayBounds( i, &r );
+        SDL_GetDisplayBounds( displays[i], &r );
         app_display_t d;
         sprintf( d.id, "DISPLAY%d", i );
         d.x = r.x;
@@ -3416,6 +3417,7 @@ int app_run( int (*app_proc)( app_t*, void* ), void* user_data, void* memctx, vo
         d.height = r.h;
         app->displays[ i ] = d;
         }
+    SDL_free( displays );
     app->display_count = display_count;
 
     SDL_GL_CreateContext( app->window );
@@ -3471,14 +3473,13 @@ int app_run( int (*app_proc)( app_t*, void* ), void* user_data, void* memctx, vo
 init_failed:
     if( app->sound_device )
         {
-        SDL_PauseAudioDevice( app->sound_device, 1 );
-        SDL_CloseAudioDevice( app->sound_device );
-        app->sound_device = 0;
+        SDL_DestroyAudioStream( app->sound_device );
+        app->sound_device = NULL;
         app->sound_callback = NULL;
         app->sound_user_data = NULL;
         }
 
-    if( app->cursor ) SDL_FreeCursor( app->cursor );
+    if( app->cursor ) SDL_DestroyCursor( app->cursor );
 
     //Destroy window
     SDL_DestroyWindow( app->window );
@@ -3557,16 +3558,16 @@ static app_key_t app_internal_scancode_to_appkey( app_t* app, SDL_Scancode scanc
         239, APP_KEY_INVALID, 240, APP_KEY_INVALID, 241, APP_KEY_INVALID, 242, APP_KEY_INVALID, 243, APP_KEY_INVALID, 244, APP_KEY_INVALID, 245,
         APP_KEY_INVALID, 246, APP_KEY_INVALID, 247, APP_KEY_INVALID, 248, APP_KEY_INVALID, 249, APP_KEY_INVALID, 250, APP_KEY_INVALID, 251, APP_KEY_INVALID,
         252, APP_KEY_INVALID, 253, APP_KEY_INVALID, 254, APP_KEY_INVALID, 255, APP_KEY_INVALID, 256, APP_KEY_MODECHANGE, SDL_SCANCODE_MODE,
-        APP_KEY_MEDIA_NEXT_TRACK, SDL_SCANCODE_AUDIONEXT, APP_KEY_MEDIA_PREV_TRACK, SDL_SCANCODE_AUDIOPREV, APP_KEY_MEDIA_PLAY_PAUSE, SDL_SCANCODE_AUDIOSTOP,
-        APP_KEY_PLAY, SDL_SCANCODE_AUDIOPLAY, APP_KEY_VOLUME_MUTE, SDL_SCANCODE_AUDIOMUTE, APP_KEY_LAUNCH_MEDIA_SELECT, SDL_SCANCODE_MEDIASELECT,
-        APP_KEY_INVALID, SDL_SCANCODE_WWW, APP_KEY_LAUNCH_MAIL, SDL_SCANCODE_MAIL, APP_KEY_INVALID, SDL_SCANCODE_CALCULATOR, APP_KEY_INVALID,
-        SDL_SCANCODE_COMPUTER, APP_KEY_BROWSER_SEARCH, SDL_SCANCODE_AC_SEARCH, APP_KEY_BROWSER_HOME, SDL_SCANCODE_AC_HOME, APP_KEY_BROWSER_BACK,
+        APP_KEY_MEDIA_NEXT_TRACK, SDL_SCANCODE_MEDIA_NEXT_TRACK, APP_KEY_MEDIA_PREV_TRACK, SDL_SCANCODE_MEDIA_PREVIOUS_TRACK, APP_KEY_MEDIA_PLAY_PAUSE, SDL_SCANCODE_MEDIA_PLAY_PAUSE,
+        APP_KEY_PLAY, SDL_SCANCODE_MEDIA_PLAY, APP_KEY_VOLUME_MUTE, SDL_SCANCODE_MUTE, APP_KEY_LAUNCH_MEDIA_SELECT, SDL_SCANCODE_MEDIA_SELECT,
+        APP_KEY_INVALID, SDL_SCANCODE_AC_HOME, APP_KEY_LAUNCH_MAIL, SDL_SCANCODE_AC_HOME, APP_KEY_INVALID, SDL_SCANCODE_AC_HOME, APP_KEY_INVALID,
+        SDL_SCANCODE_AC_HOME, APP_KEY_BROWSER_SEARCH, SDL_SCANCODE_AC_SEARCH, APP_KEY_BROWSER_HOME, SDL_SCANCODE_AC_HOME, APP_KEY_BROWSER_BACK,
         SDL_SCANCODE_AC_BACK, APP_KEY_BROWSER_FORWARD, SDL_SCANCODE_AC_FORWARD, APP_KEY_BROWSER_STOP, SDL_SCANCODE_AC_STOP, APP_KEY_BROWSER_REFRESH,
-        SDL_SCANCODE_AC_REFRESH, APP_KEY_BROWSER_FAVORITES, SDL_SCANCODE_AC_BOOKMARKS, APP_KEY_INVALID, SDL_SCANCODE_BRIGHTNESSDOWN, APP_KEY_INVALID,
-        SDL_SCANCODE_BRIGHTNESSUP, APP_KEY_INVALID, SDL_SCANCODE_DISPLAYSWITCH, APP_KEY_INVALID, SDL_SCANCODE_KBDILLUMTOGGLE, APP_KEY_INVALID,
-        SDL_SCANCODE_KBDILLUMDOWN, APP_KEY_INVALID, SDL_SCANCODE_KBDILLUMUP, APP_KEY_INVALID, SDL_SCANCODE_EJECT, APP_KEY_SLEEP, SDL_SCANCODE_SLEEP,
-        APP_KEY_LAUNCH_APP1, SDL_SCANCODE_APP1, APP_KEY_LAUNCH_APP2, SDL_SCANCODE_APP2, APP_KEY_INVALID, SDL_SCANCODE_AUDIOREWIND, APP_KEY_INVALID,
-        SDL_SCANCODE_AUDIOFASTFORWARD, };
+        SDL_SCANCODE_AC_REFRESH, APP_KEY_BROWSER_FAVORITES, SDL_SCANCODE_AC_BOOKMARKS, APP_KEY_INVALID, SDL_SCANCODE_COUNT, APP_KEY_INVALID,
+        SDL_SCANCODE_COUNT, APP_KEY_INVALID, SDL_SCANCODE_COUNT, APP_KEY_INVALID, SDL_SCANCODE_COUNT, APP_KEY_INVALID,
+        SDL_SCANCODE_COUNT, APP_KEY_INVALID, SDL_SCANCODE_COUNT, APP_KEY_INVALID, SDL_SCANCODE_MEDIA_EJECT, APP_KEY_SLEEP, SDL_SCANCODE_SLEEP,
+        APP_KEY_LAUNCH_APP1, SDL_SCANCODE_COUNT, APP_KEY_LAUNCH_APP2, SDL_SCANCODE_COUNT, APP_KEY_INVALID, SDL_SCANCODE_MEDIA_REWIND, APP_KEY_INVALID,
+        SDL_SCANCODE_MEDIA_FAST_FORWARD, };
 
     if( scancode < 0 || scancode >= sizeof( map ) / ( 2 * sizeof( *map ) ) ) return APP_KEY_INVALID;
     if( map[ scancode * 2 + 1 ] != scancode )
@@ -3593,60 +3594,56 @@ app_state_t app_yield( app_t* app )
     if( !app->initialized )
         {
         app->initialized = 1;
-        if( app->screenmode == APP_SCREENMODE_FULLSCREEN ) SDL_SetWindowFullscreen( app->window, SDL_WINDOW_FULLSCREEN_DESKTOP );
+        if( app->screenmode == APP_SCREENMODE_FULLSCREEN ) SDL_SetWindowFullscreen( app->window, true );
         SDL_ShowWindow( app->window );
         int w = app->gl.window_width;
         int h = app->gl.window_height;
-        SDL_GL_GetDrawableSize( app->window, &w, &h );
+        SDL_GetWindowSizeInPixels( app->window, &w, &h );
         app_internal_opengl_resize( &app->gl, w, h );
         }
 
     SDL_Event e;
     while( SDL_PollEvent( &e ) )
         {
-        if( e.type == SDL_WINDOWEVENT )
+        if( e.type == SDL_EVENT_WINDOW_RESIZED )
             {
-            if( e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED )
+            int w = e.window.data1;
+            int h = e.window.data2;
+            if( w != app->gl.window_width || h != app->gl.window_height )
                 {
-                int w = app->gl.window_width;
-                int h = app->gl.window_height;
-                SDL_GL_GetDrawableSize( app->window, &w, &h );
-                if( w != app->gl.window_width || h != app->gl.window_height )
-                    {
-                    app_internal_opengl_resize( &app->gl, w, h );
-                    }
-                }
-            else if( e.window.event == SDL_WINDOWEVENT_CLOSE )
-                {
-                app->exit_requested = 1;
-                }
-            else if( e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED )
-                {
-                app->has_focus = 1;
-                }
-            else if( e.window.event == SDL_WINDOWEVENT_FOCUS_LOST )
-                {
-                app->has_focus = 0;
+                app_internal_opengl_resize( &app->gl, w, h );
                 }
             }
-        else if( e.type == SDL_KEYDOWN )
+        else if( e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED )
+            {
+            app->exit_requested = 1;
+            }
+        else if( e.type == SDL_EVENT_WINDOW_FOCUS_GAINED )
+            {
+            app->has_focus = 1;
+            }
+        else if( e.type == SDL_EVENT_WINDOW_FOCUS_LOST )
+            {
+            app->has_focus = 0;
+            }
+        else if( e.type == SDL_EVENT_KEY_DOWN )
             {
             app_input_event_t input_event;
             input_event.type = APP_INPUT_KEY_DOWN;
-            input_event.data.key = app_internal_scancode_to_appkey( app, e.key.keysym.scancode );
+            input_event.data.key = app_internal_scancode_to_appkey( app, e.key.scancode );
             app_internal_add_input_event( app, &input_event );
             }
-        else if( e.type == SDL_KEYUP )
+        else if( e.type == SDL_EVENT_KEY_UP )
             {
             app_input_event_t input_event;
             input_event.type = APP_INPUT_KEY_UP;
-            input_event.data.key = app_internal_scancode_to_appkey( app, e.key.keysym.scancode );
+            input_event.data.key = app_internal_scancode_to_appkey( app, e.key.scancode );
             app_internal_add_input_event( app, &input_event );
             }
-        else if( e.type == SDL_TEXTINPUT )
+        else if( e.type == SDL_EVENT_TEXT_INPUT )
             {
             app_input_event_t input_event;
-            char *c;
+            const char *c;
             input_event.type = APP_INPUT_CHAR;
             for ( c = e.text.text; *c; c++ )
                 {
@@ -3654,7 +3651,7 @@ app_state_t app_yield( app_t* app )
                 app_internal_add_input_event( app, &input_event );
                 }
             }
-        else if( e.type == SDL_MOUSEMOTION )
+        else if( e.type == SDL_EVENT_MOUSE_MOTION )
             {
             app_input_event_t input_event;
             input_event.type = APP_INPUT_MOUSE_MOVE;
@@ -3663,11 +3660,11 @@ app_state_t app_yield( app_t* app )
             app_internal_add_input_event( app, &input_event );
 
             input_event.type = APP_INPUT_MOUSE_DELTA;
-            input_event.data.mouse_pos.x = e.motion.xrel;
-            input_event.data.mouse_pos.y = e.motion.yrel;
+            input_event.data.mouse_delta.x = e.motion.xrel;
+            input_event.data.mouse_delta.y = e.motion.yrel;
             app_internal_add_input_event( app, &input_event );
             }
-        else if( e.type == SDL_MOUSEBUTTONDOWN )
+        else if( e.type == SDL_EVENT_MOUSE_BUTTON_DOWN )
             {
             app_input_event_t input_event;
             input_event.type = APP_INPUT_KEY_DOWN;
@@ -3683,7 +3680,7 @@ app_state_t app_yield( app_t* app )
                 input_event.data.key = APP_KEY_XBUTTON2;
             app_internal_add_input_event( app, &input_event );
             }
-        else if( e.type == SDL_MOUSEBUTTONUP )
+        else if( e.type == SDL_EVENT_MOUSE_BUTTON_UP )
             {
             app_input_event_t input_event;
             input_event.type = APP_INPUT_KEY_UP;
@@ -3699,7 +3696,7 @@ app_state_t app_yield( app_t* app )
                 input_event.data.key = APP_KEY_XBUTTON2;
             app_internal_add_input_event( app, &input_event );
             }
-        else if( e.type == SDL_MOUSEWHEEL )
+        else if( e.type == SDL_EVENT_MOUSE_WHEEL )
             {
             float const microsoft_mouse_wheel_constant = 120.0f;
             float wheel_delta = ( (float) e.wheel.y ) / microsoft_mouse_wheel_constant;
@@ -3716,7 +3713,6 @@ app_state_t app_yield( app_t* app )
                 app_internal_add_input_event( app, &input_event );
                 }
             }
-
         }
 
     return app->exit_requested ? APP_STATE_EXIT_REQUESTED : APP_STATE_NORMAL;
@@ -3764,11 +3760,12 @@ void app_fatal_error( app_t* app, char const* message )
 
 void app_pointer( app_t* app, int width, int height, APP_U32* pixels_abgr, int hotspot_x, int hotspot_y )
     {
-    SDL_Surface* surf = SDL_CreateRGBSurfaceFrom( (void*)pixels_abgr, width, height, 32, 4 * width, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 );
-    if( app->cursor ) SDL_FreeCursor( app->cursor );
+    SDL_PixelFormat format = SDL_PIXELFORMAT_ABGR8888;
+    SDL_Surface* surf = SDL_CreateSurfaceFrom( width, height, format, pixels_abgr, 4 * width );
+    if( app->cursor ) SDL_DestroyCursor( app->cursor );
     app->cursor = SDL_CreateColorCursor( surf, hotspot_x, hotspot_y );
     SDL_SetCursor( app->cursor );
-    SDL_FreeSurface( surf );
+    SDL_DestroySurface( surf );
     }
 
 
@@ -3783,17 +3780,17 @@ void app_pointer_pos( app_t* app, int x, int y )
 
 int app_pointer_x( app_t* app )
     {
-    int x = 0;
+    float x = 0;
     SDL_GetMouseState( &x, NULL );
-    return x;
+    return (int) x;
     }
 
 
 int app_pointer_y( app_t* app )
     {
-    int y = 0;
+    float y = 0;
     SDL_GetMouseState( NULL, &y );
-    return y;
+    return (int) y;
     }
 
 
@@ -3805,14 +3802,14 @@ void app_interpolation( app_t* app, app_interpolation_t interpolation )
     if( interpolation == app->interpolation ) return;
     app->interpolation = interpolation;
 
-    int mouse_x;
-    int mouse_y;
+    float mouse_x;
+    float mouse_y;
     SDL_GetMouseState( &mouse_x, &mouse_y );
 
     app_input_event_t input_event;
     input_event.type = APP_INPUT_MOUSE_MOVE;
-    input_event.data.mouse_pos.x = mouse_x;
-    input_event.data.mouse_pos.y = mouse_y;
+    input_event.data.mouse_pos.x = (int) mouse_x;
+    input_event.data.mouse_pos.y = (int) mouse_y;
     app_internal_add_input_event( app, &input_event );
 
     app_internal_opengl_interpolation( &app->gl, interpolation );
@@ -3825,7 +3822,7 @@ void app_screenmode( app_t* app, app_screenmode_t screenmode )
         {
         app->screenmode = screenmode;
         SDL_SetWindowFullscreen( app->window,
-            screenmode == APP_SCREENMODE_FULLSCREEN ? SDL_WINDOW_FULLSCREEN_DESKTOP  : 0 );
+            screenmode == APP_SCREENMODE_FULLSCREEN ? true : false );
         }
     }
 
@@ -3890,21 +3887,31 @@ void app_present( app_t* app, APP_U32 const* pixels_xbgr, int width, int height,
     }
 
 
-static void app_internal_sdl_sound_callback( void* userdata, Uint8* stream, int len )
+static void app_internal_sdl_sound_callback( void* userdata, SDL_AudioStream* stream, int additional_amount, int total_amount )
     {
     app_t* app = (app_t*) userdata;
-    if( app->sound_callback )
+    if( app->sound_callback && total_amount > 0 )
         {
-        app->sound_callback( (APP_S16*) stream, len / ( 2 * sizeof( APP_S16 ) ), app->sound_user_data );
-        if( app->volume < 256 )
+        int sample_pairs_count = total_amount / ( 2 * sizeof( APP_S16 ) );
+        APP_S16* buffer = (APP_S16*) SDL_calloc( 1, total_amount );
+        if( buffer )
             {
-            APP_S16* samples = (APP_S16*) stream;
-            for( int i = 0; i < len / sizeof( APP_S16 ); ++i )
+            SDL_GetAudioStreamData( stream, buffer, total_amount );
+            
+            app->sound_callback( buffer, sample_pairs_count, app->sound_user_data );
+            
+            if( app->volume < 256 )
                 {
-                int s = (int)(*samples);
-                s = ( s * app->volume ) >> 8;
-                *samples++ = (APP_S16) s;
+                for( int i = 0; i < sample_pairs_count * 2; ++i )
+                    {
+                    int s = (int)(buffer[i]);
+                    s = ( s * app->volume ) >> 8;
+                    buffer[i] = (APP_S16) s;
+                    }
                 }
+            
+            SDL_PutAudioStreamData( stream, buffer, total_amount );
+            SDL_free( buffer );
             }
         }
     }
@@ -3914,31 +3921,24 @@ void app_sound( app_t* app, int sample_pairs_count, void (*sound_callback)( APP_
     {
     if( app->sound_device )
         {
-        SDL_PauseAudioDevice( app->sound_device, 1 );
-        SDL_CloseAudioDevice( app->sound_device );
+        SDL_DestroyAudioStream( app->sound_device );
         app->sound_callback = NULL;
         app->sound_user_data = NULL;
-        app->sound_device = 0;
+        app->sound_device = NULL;
         }
     if( sample_pairs_count > 0 && sound_callback )
         {
         SDL_AudioSpec spec;
         spec.freq = 44100;
-        spec.format = AUDIO_S16;
+        spec.format = SDL_AUDIO_S16;
         spec.channels = 2;
-        spec.silence = 0;
-        spec.samples = sample_pairs_count * 2;
-        spec.padding = 0;
-        spec.size = 0;
-        spec.callback = app_internal_sdl_sound_callback;
-        spec.userdata = app;
-
-        app->sound_device = SDL_OpenAudioDevice( NULL, 0, &spec, NULL, 0 );
+        
+        app->sound_device = SDL_OpenAudioDeviceStream( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, app_internal_sdl_sound_callback, app );
         if( !app->sound_device ) return;
 
         app->sound_callback = sound_callback;
         app->sound_user_data = user_data;
-        SDL_PauseAudioDevice( app->sound_device, 0 );
+        SDL_ResumeAudioStreamDevice( app->sound_device );
         }
     }
 
@@ -3965,7 +3965,7 @@ void app_coordinates_window_to_bitmap( app_t* app, int width, int height, int* x
     if( width == 0 || height == 0 ) return;
     int window_width;
     int window_height;
-    SDL_GL_GetDrawableSize( app->window, &window_width, &window_height );
+    SDL_GetWindowSizeInPixels( app->window, &window_width, &window_height );
 
 
     if( app->interpolation == APP_INTERPOLATION_LINEAR )
@@ -4008,7 +4008,7 @@ void app_coordinates_bitmap_to_window( app_t* app, int width, int height, int* x
     {
     int window_width;
     int window_height;
-    SDL_GL_GetDrawableSize( app->window, &window_width, &window_height );
+    SDL_GetWindowSizeInPixels( app->window, &window_width, &window_height );
 
     if( app->interpolation == APP_INTERPOLATION_LINEAR )
         {

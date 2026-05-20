@@ -34,24 +34,24 @@ For building the final release version, you probably want all optimizations enab
 ### Mac
 
 ```
-  clang source/yarnspin.c `sdl2-config --libs --cflags` -lGLEW -framework OpenGL -lpthread
+  clang source/yarnspin.c `sdl3-config --libs --cflags` -lGLEW -framework OpenGL -lpthread
 ```
 
-SDL2 and GLEW are required - if you don't have them installed you can do so with Homebrew by running
+SDL3 and GLEW are required - if you don't have them installed you can do so with Homebrew by running
 ```
-  brew install sdl2 glew  
+  brew install sdl3 glew  
 ```
 
 
 ### Linux
 
 ```
-  gcc source/yarnspin.c `sdl2-config --libs --cflags` -lGLEW -lGL -lm -lpthread
+  gcc source/yarnspin.c `sdl3-config --libs --cflags` -lGLEW -lGL -lm -lpthread
 ```
 
-SDL2 and GLEW are required - if you don't have them installed you can do so on Ubuntu (or wherever `apt-get` is available) by running
+SDL3 and GLEW are required - if you don't have them installed you can do so on Ubuntu (or wherever `apt-get` is available) by running
 ```
-  sudo apt-get install libsdl2-dev
+  sudo apt-get install libsdl3-dev
   sudo apt-get install libglew-dev
 ```
 
